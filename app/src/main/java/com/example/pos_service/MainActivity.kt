@@ -36,9 +36,9 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
@@ -66,6 +66,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -75,8 +76,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -130,37 +135,52 @@ data class CartItem(
         }
 }
 
-// Opciones comunes de preparación de tacos
-val commonModifiersList = listOf(
+// Opciones de preparación específicas según categoría
+val foodModifiersList = listOf(
     "Con todo",
     "Sin cebolla",
     "Sin cilantro",
-    "Salsa aparte",
-    "Con piña extra",
     "Sin salsa",
-    "Doble tortilla",
-    "Bien dorado"
+    "Sin aguacate",
+    "Salsa aparte"
 )
+
+val beverageModifiersList = listOf(
+    "Al tiempo"
+)
+
+// Opciones de mesas y ubicación
+val tablesList = listOf("Mesa 1", "Mesa 2", "Mesa 3", "Mesa 4", "Mesa 5", "Mesa 6", "Mesa 7", "Barra")
 
 // ==========================================
 // DATOS DE EJEMPLO
 // ==========================================
 
 val sampleProducts = listOf(
-    Product("1", "Taco al Pastor", 25.00, ProductCategory.COMIDA, "🌮", "4.9", "Con piña y adobo artesanal"),
-    Product("2", "Taco de Suadero", 25.00, ProductCategory.COMIDA, "🌮", "4.8", "Suadero suave de res"),
-    Product("3", "Taco de Birria", 30.00, ProductCategory.COMIDA, "🌮", "5.0", "Incluye consomé caliente"),
-    Product("4", "Taco de Asada", 28.00, ProductCategory.COMIDA, "🥩", "4.7", "Carne al carbón marinada"),
-    Product("5", "Gringa de Pastor", 50.00, ProductCategory.COMIDA, "🫓", "4.9", "Queso derretido en tortilla de harina"),
-    Product("6", "Quesadilla de Queso", 35.00, ProductCategory.COMIDA, "🧀", "4.6", "Queso oaxaca fundido"),
-    Product("7", "Burrito Especial", 65.00, ProductCategory.COMIDA, "🌯", "4.8", "Frijoles, queso, pastor y suadero"),
-    Product("8", "Orden Guacamole", 40.00, ProductCategory.COMIDA, "🥑", "4.9", "Con totopos crujientes"),
-    Product("9", "Agua de Horchata", 25.00, ProductCategory.BEBIDAS, "🥛", "4.9", "Receta casera con canela"),
-    Product("10", "Agua de Jamaica", 25.00, ProductCategory.BEBIDAS, "🌺", "4.8", "Fresca y natural"),
-    Product("11", "Refresco Cola", 30.00, ProductCategory.BEBIDAS, "🥤", "4.7", "Vidrio 355ml bien frío"),
-    Product("12", "Cerveza Clara", 45.00, ProductCategory.BEBIDAS, "🍺", "4.8", "Cerveza nacional 355ml"),
-    Product("13", "Cerveza Oscura", 45.00, ProductCategory.BEBIDAS, "🍺", "4.9", "Cerveza artesanal oscura"),
-    Product("14", "Agua Embotellada", 20.00, ProductCategory.BEBIDAS, "💧", "4.5", "Purificada 600ml")
+    // --- SECCIÓN COMIDA ---
+    Product("1", "Taco de Asada", 28.00, ProductCategory.COMIDA, "🥩", "4.9", "Carne asada al carbón"),
+    Product("2", "Taco de Adobada", 25.00, ProductCategory.COMIDA, "🌮", "4.9", "Adobada al pastor tradicional"),
+    Product("3", "Taco al Pastor", 25.00, ProductCategory.COMIDA, "🌮", "5.0", "Con piña y adobo casero"),
+    Product("4", "Taco Suadero", 25.00, ProductCategory.COMIDA, "🌮", "4.8", "Suadero suave de res"),
+    Product("5", "Taco de Tripa", 30.00, ProductCategory.COMIDA, "🌮", "4.9", "Tripa bien doradita"),
+    Product("6", "Taco de Cabeza", 28.00, ProductCategory.COMIDA, "🌮", "4.7", "Cabeza de res al vapor"),
+    Product("7", "Mulita Chica", 45.00, ProductCategory.COMIDA, "🫓", "4.8", "Doble tortilla con queso y carne"),
+    Product("8", "Mulita Grande", 60.00, ProductCategory.COMIDA, "🫓", "4.9", "Mulita grande especial con queso"),
+    Product("9", "Torta de Asada", 65.00, ProductCategory.COMIDA, "🥪", "4.8", "Telera caliente con carne asada"),
+    Product("10", "Torta de Adobada", 65.00, ProductCategory.COMIDA, "🥪", "4.9", "Telera caliente con adobada y queso"),
+    Product("11", "Torta Mixta", 75.00, ProductCategory.COMIDA, "🥪", "5.0", "Combinación asada y adobada"),
+
+    // --- SECCIÓN BEBIDAS ---
+    Product("12", "Coca-Cola Regular", 30.00, ProductCategory.BEBIDAS, "🥤", "4.9", "Refresco 355ml"),
+    Product("13", "Coca-Cola Zero", 30.00, ProductCategory.BEBIDAS, "🥤", "4.8", "Refresco sin azúcar 355ml"),
+    Product("14", "Manzana", 28.00, ProductCategory.BEBIDAS, "🍏", "4.7", "Refresco de manzana 355ml"),
+    Product("15", "Naranja", 28.00, ProductCategory.BEBIDAS, "🍊", "4.7", "Refresco de naranja 355ml"),
+    Product("16", "Sprite", 28.00, ProductCategory.BEBIDAS, "🍋", "4.8", "Refresco lima-limón 355ml"),
+    Product("17", "Fresca", 28.00, ProductCategory.BEBIDAS, "🥤", "4.7", "Refresco toronja 355ml"),
+    Product("18", "Agua Cebada", 25.00, ProductCategory.BEBIDAS, "🌾", "4.9", "Agua fresca de cebada artesanal"),
+    Product("19", "Agua Horchata", 25.00, ProductCategory.BEBIDAS, "🥛", "5.0", "Agua de arroz y canela casera"),
+    Product("20", "Agua Jamaica", 25.00, ProductCategory.BEBIDAS, "🌺", "4.9", "Agua de flor de jamaica natural"),
+    Product("21", "Agua Natural", 20.00, ProductCategory.BEBIDAS, "💧", "4.6", "Agua purificada embotellada 600ml")
 )
 
 // ==========================================
@@ -169,8 +189,9 @@ val sampleProducts = listOf(
 
 fun generateThermalReceipt(
     cartItems: List<CartItem>,
-    mesa: String = "Mesa 4",
+    mesa: String = "Mesa 1",
     caja: String = "Caja #1",
+    isTakeout: Boolean = false,
     ticketId: Int = 104
 ): String {
     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.US)
@@ -180,11 +201,21 @@ fun generateThermalReceipt(
 
     val sb = StringBuilder()
     sb.appendLine("================================")
-    sb.appendLine("     *** ORDEN COCINA ***      ")
+    if (isTakeout) {
+        sb.appendLine("    *** ORDEN PARA LLEVAR ***   ")
+    } else {
+        sb.appendLine("     *** ORDEN COCINA ***      ")
+    }
     sb.appendLine("================================")
     sb.appendLine("Ticket #: $ticketId")
     sb.appendLine("Fecha: $currentDate")
-    sb.appendLine("Ubicación: $mesa | $caja")
+    if (isTakeout) {
+        sb.appendLine("TIPO: 🛍️ PARA LLEVAR")
+        sb.appendLine("Origen: $mesa | $caja")
+    } else {
+        sb.appendLine("TIPO: 🍽️ COMER AQUÍ")
+        sb.appendLine("Ubicación: $mesa | $caja")
+    }
     sb.appendLine("--------------------------------")
     sb.appendLine(String.format(Locale.US, "%-4s %-17s %9s", "CANT", "PRODUCTO", "SUBTOTAL"))
     sb.appendLine("--------------------------------")
@@ -208,7 +239,11 @@ fun generateThermalReceipt(
     sb.appendLine("Total Productos: $totalItems")
     sb.appendLine(String.format(Locale.US, "TOTAL A PAGAR:        $%8.2f", totalAmount))
     sb.appendLine("================================")
-    sb.appendLine("     ¡ENVIAR A PREPARACIÓN!     ")
+    if (isTakeout) {
+        sb.appendLine("  ¡EMPACAR PARA LLEVAR! 🛍️     ")
+    } else {
+        sb.appendLine("     ¡ENVIAR A PREPARACIÓN!     ")
+    }
     sb.appendLine("================================")
     sb.appendLine("[ IMPRESORA ESC/POS - CORTE DE PAPEL ]")
 
@@ -242,12 +277,15 @@ fun POSMainScreen() {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(ProductCategory.TODOS) }
+    var selectedTable by remember { mutableStateOf("Mesa 1") }
+    var isTakeout by remember { mutableStateOf(false) }
+
     val cartItems = remember { mutableStateListOf<CartItem>() }
 
     // Estados para los diálogos
     var productForModifierDialog by remember { mutableStateOf<Product?>(null) }
+    var showTableSelectionDialog by remember { mutableStateOf(false) }
     var showReceiptPreviewDialog by remember { mutableStateOf(false) }
     var generatedTicketText by remember { mutableStateOf("") }
 
@@ -310,7 +348,11 @@ fun POSMainScreen() {
             return
         }
 
-        val ticket = generateThermalReceipt(cartItems)
+        val ticket = generateThermalReceipt(
+            cartItems = cartItems,
+            mesa = selectedTable,
+            isTakeout = isTakeout
+        )
         generatedTicketText = ticket
 
         Log.d("POS_TICKET", "\n$ticket")
@@ -320,11 +362,12 @@ fun POSMainScreen() {
     fun confirmSendToKitchen() {
         val itemsCount = cartTotalItems
         val totalFormatted = String.format(Locale.US, "$%.2f", cartTotal)
+        val typeLabel = if (isTakeout) "🛍️ PARA LLEVAR" else "🍽️ $selectedTable"
         showReceiptPreviewDialog = false
         clearCart()
         coroutineScope.launch {
             snackbarHostState.showSnackbar(
-                "¡Orden enviada a cocina! ($itemsCount items - $totalFormatted)"
+                "¡Orden enviada a cocina! ($typeLabel • $itemsCount items - $totalFormatted)"
             )
         }
     }
@@ -368,14 +411,15 @@ fun POSMainScreen() {
                             }
                         }
 
-                        // Badge Mesa/Caja
+                        // Selector de Mesa / Ubicación en TopBar
                         Surface(
+                            modifier = Modifier.clickable { showTableSelectionDialog = true },
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.secondaryContainer,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
                         ) {
                             Text(
-                                text = "Mesa 4 • Caja #1",
+                                text = "🪑 $selectedTable • Caja #1 ▾",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -399,7 +443,7 @@ fun POSMainScreen() {
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // ==========================================
-            // COLUMNA IZQUIERDA (65%): BUSCADOR + CATEGORÍAS + GRID BURGER APP
+            // COLUMNA IZQUIERDA (65%): CATEGORÍAS + GRID BURGER APP
             // ==========================================
             Column(
                 modifier = Modifier
@@ -407,39 +451,6 @@ fun POSMainScreen() {
                     .weight(0.65f),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Barra de Búsqueda Integrada (Estilo Burger App Concept UI)
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Buscar tacos, bebidas, especialidades...") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Buscar",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Limpiar búsqueda"
-                                )
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.Transparent
-                    ),
-                    singleLine = true
-                )
-
                 // Pills de Selección de Categoría (Estilo Burger App)
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -470,14 +481,12 @@ fun POSMainScreen() {
                     }
                 }
 
-                // Filtrar productos según categoría y término de búsqueda
-                val filteredProducts = remember(selectedCategory, searchQuery) {
-                    sampleProducts.filter { product ->
-                        val matchesCategory = (selectedCategory == ProductCategory.TODOS || product.category == selectedCategory)
-                        val matchesSearch = searchQuery.isBlank() ||
-                                product.name.contains(searchQuery, ignoreCase = true) ||
-                                product.description.contains(searchQuery, ignoreCase = true)
-                        matchesCategory && matchesSearch
+                // Filtrar productos según categoría seleccionada
+                val filteredProducts = remember(selectedCategory) {
+                    if (selectedCategory == ProductCategory.TODOS) {
+                        sampleProducts
+                    } else {
+                        sampleProducts.filter { it.category == selectedCategory }
                     }
                 }
 
@@ -566,8 +575,59 @@ fun POSMainScreen() {
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Controles de Asignación de Mesa y Opción Para Llevar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Botón de Selección de Mesa
+                        Surface(
+                            modifier = Modifier.clickable { showTableSelectionDialog = true },
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "🪑 $selectedTable ▾",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        // Toggle / Chip Para Llevar
+                        FilterChip(
+                            selected = isTakeout,
+                            onClick = { isTakeout = !isTakeout },
+                            label = {
+                                Text(
+                                    text = if (isTakeout) "🛍️ PARA LLEVAR" else "🍽️ COMER AQUÍ",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            shape = CircleShape,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = null
+                        )
+                    }
+
                     HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 12.dp),
+                        modifier = Modifier.padding(vertical = 10.dp),
                         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                     )
 
@@ -594,7 +654,7 @@ fun POSMainScreen() {
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Toca un producto para agregar con notas",
+                                    text = "Toca un producto para agregar a la orden",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -685,7 +745,7 @@ fun POSMainScreen() {
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Text(
-                                    text = "ENVIAR A COCINA",
+                                    text = if (isTakeout) "ENVIAR PARA LLEVAR 🛍️" else "ENVIAR A COCINA",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.ExtraBold,
                                     letterSpacing = 0.5.sp
@@ -696,6 +756,18 @@ fun POSMainScreen() {
                 }
             }
         }
+    }
+
+    // DIÁLOGO SELECCIÓN DE MESA
+    if (showTableSelectionDialog) {
+        TableSelectionDialog(
+            currentTable = selectedTable,
+            onDismiss = { showTableSelectionDialog = false },
+            onSelectTable = { table ->
+                selectedTable = table
+                showTableSelectionDialog = false
+            }
+        )
     }
 
     // DIÁLOGO DE MODIFICADORES
@@ -714,10 +786,101 @@ fun POSMainScreen() {
     if (showReceiptPreviewDialog) {
         ThermalReceiptPreviewDialog(
             ticketText = generatedTicketText,
+            isTakeout = isTakeout,
+            onToggleTakeout = {
+                isTakeout = it
+                generatedTicketText = generateThermalReceipt(cartItems, mesa = selectedTable, isTakeout = isTakeout)
+            },
             onDismiss = { showReceiptPreviewDialog = false },
             onConfirmPrint = { confirmSendToKitchen() }
         )
     }
+}
+
+// ==========================================
+// COMPONENTE: DIÁLOGO SELECCIÓN DE MESA
+// ==========================================
+
+@Composable
+fun TableSelectionDialog(
+    currentTable: String,
+    onDismiss: () -> Unit,
+    onSelectTable: (String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(text = "🪑", fontSize = 22.sp)
+                    }
+                }
+                Text(
+                    text = "Seleccionar Mesa / Ubicación",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Asigna la ubicación del cliente para esta orden:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    tablesList.forEach { table ->
+                        val isSelected = table == currentTable
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onSelectTable(table) },
+                            label = {
+                                Text(
+                                    text = table,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                                )
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = null
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cerrar", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    )
 }
 
 // ==========================================
@@ -1020,6 +1183,34 @@ fun ProductModifierDialog(
 ) {
     val selectedModifiers = remember { mutableStateListOf<String>() }
     var customNote by remember { mutableStateOf("") }
+    var isEditingNote by remember { mutableStateOf(false) }
+
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    // Evitar que el teclado virtual salte automáticamente al abrir el diálogo
+    LaunchedEffect(product) {
+        focusManager.clearFocus(force = true)
+        keyboardController?.hide()
+    }
+
+    // Solicitar foco y mostrar teclado únicamente cuando el usuario seleccione la opción de escribir
+    LaunchedEffect(isEditingNote) {
+        if (isEditingNote) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+
+    // Seleccionar opciones de preparación según la categoría del producto
+    val currentModifiersList = remember(product.category) {
+        if (product.category == ProductCategory.BEBIDAS) {
+            beverageModifiersList
+        } else {
+            foodModifiersList
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1074,7 +1265,7 @@ fun ProductModifierDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    commonModifiersList.forEach { modifier ->
+                    currentModifiersList.forEach { modifier ->
                         val isSelected = selectedModifiers.contains(modifier)
                         FilterChip(
                             selected = isSelected,
@@ -1100,22 +1291,55 @@ fun ProductModifierDialog(
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
-                // Campo de texto para notas especiales
-                OutlinedTextField(
-                    value = customNote,
-                    onValueChange = { customNote = it },
-                    label = { Text("Nota especial para la cocina") },
-                    placeholder = { Text("Ej. Bien dorado, poca salsa...") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.Transparent
+                // Campo / Botón para notas especiales (No abre teclado hasta que el usuario toque la opción de escribir)
+                if (!isEditingNote && customNote.isBlank()) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isEditingNote = true },
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Escribir nota",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Toca aquí para escribir una nota especial...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = customNote,
+                        onValueChange = { customNote = it },
+                        label = { Text("Nota especial / Comentario") },
+                        placeholder = { Text("Ej. Bien dorado, poca salsa...") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        maxLines = 3,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = Color.Transparent
+                        )
                     )
-                )
+                }
             }
         },
         confirmButton = {
@@ -1144,6 +1368,8 @@ fun ProductModifierDialog(
 @Composable
 fun ThermalReceiptPreviewDialog(
     ticketText: String,
+    isTakeout: Boolean,
+    onToggleTakeout: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onConfirmPrint: () -> Unit
 ) {
@@ -1152,19 +1378,44 @@ fun ThermalReceiptPreviewDialog(
         containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Print,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "Comanda / Ticket Térmico",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Print,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Comanda / Ticket",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // Chip de cambio de tipo en el diálogo
+                FilterChip(
+                    selected = isTakeout,
+                    onClick = { onToggleTakeout(!isTakeout) },
+                    label = {
+                        Text(
+                            text = if (isTakeout) "🛍️ PARA LLEVAR" else "🍽️ COMER AQUÍ",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    shape = CircleShape,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    border = null
                 )
             }
         },
@@ -1175,7 +1426,7 @@ fun ThermalReceiptPreviewDialog(
                     .verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = "Vista previa enviada al sistema de impresión (ESC/POS):",
+                    text = "Vista previa enviada a la impresora térmica (ESC/POS):",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp)

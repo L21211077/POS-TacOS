@@ -12,12 +12,19 @@
 ## 🌟 Características Principales
 
 - **📱 Diseño de Pantalla Dividida (Split-Screen Tablet Layout)**:
-  - **Columna Izquierda (65% del ancho)**: Catálogo visual de productos en cuadrícula adaptable (*Grid*), buscador dinámico y selector de categorías estilo cápsula (*Pills*).
+  - **Columna Izquierda (65% del ancho)**: Catálogo visual de productos en cuadrícula adaptable (*Grid*) y selector de categorías estilo cápsula (*Pills*).
   - **Columna Derecha (35% del ancho)**: Panel de orden actual / carrito de compras con control de cantidades, resumen de importes y botón de envío a cocina.
 
-- **🔍 Búsqueda y Filtrado en Tiempo Real**:
-  - Buscador integrado con filtrado al instante por nombre o descripción del producto.
-  - Pestañas/Pills para categorizar rápidamente entre `🔥 Todos`, `🌮 Comida` y `🥤 Bebidas`.
+- **🪑 Asignación de Mesas y Ubicación (`TableSelectionDialog`)**:
+  - Selección interactiva de ubicación: `Mesa 1`, `Mesa 2`, `Mesa 3`, `Mesa 4`, `Mesa 5`, `Mesa 6`, `Mesa 7` y `Barra`.
+  - Acceso rápido desde el TopBar o desde el panel de la orden.
+
+- **🛍️ Opción "Para Llevar" (Takeout/To-Go)**:
+  - Toggle/chip interactivo para cambiar instantáneamente entre `🍽️ Comer Aquí` y `🛍️ Para Llevar`.
+  - Reflejado en la interfaz, en el encabezado del ticket ESC/POS (`*** ORDEN PARA LLEVAR ***`) y en las notificaciones a cocina.
+
+- **🏷️ Selector de Categorías Rápido**:
+  - Pestañas/Pills para categorizar instantáneamente entre `🔥 Todos`, `🌮 Comida` y `🥤 Bebidas`.
 
 - **🛠️ Modificadores y Notas de Preparación (`ProductModifierDialog`)**:
   - Al hacer clic en un producto se abre un diálogo interactivo para personalizar la orden.
